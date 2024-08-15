@@ -29,23 +29,23 @@ function getRandomInt(min, max) {
 }
 
 async function send(command) {
-	if (!lbot) return console.log("============= Bot tried to send a message, but is not connected!");
+	if (!lbot) return console.log(`[91m${time()}[0m Bot tried to send a message, but is not connected!`);
 	if (command.length > 255) {
-		console.log("============= Bot tried to send too long message");
+		console.log(`[91m${time()}[0m Bot tried to send too long message`);
 		return
 	}
 	if (command.indexOf("§") != -1 || command.indexOf("\n") != -1 || command.indexOf("\r") != -1) {
-		console.log("============= Bot tried to send invalid symbols");
+		console.log(`[91m${time()}[0m Bot tried to send invalid symbols`);
 		return
 	}
 	lbot.chat(command);
 }
 
 function exit() {
-	if (!lbot) return console.log("============= Bot is not connected");
+	if (!lbot) return console.log("[91m Bot is not connected");
 	lbot.quit();
 	lbot = undefined;
-	console.log(`============= Left (user input)`);
+	console.log(`[96m${time()}[0m Left (user input)`);
 }
 
 // Время для логирования
@@ -99,8 +99,7 @@ function createIns() {
 			team: false,
 			time: false,
 			title: false,
-			villager: false,
-			entities: false // bypasses dexland security
+			villager: false
 		},
 		host: host,
 		username: botname,
@@ -109,13 +108,13 @@ function createIns() {
 	});
 
 	bot.on("login", () => {
-		console.log("============= Bot joined.");
+		console.log(`[96m${time()}[0m Bot joined.`);
 	});
 	bot.on("spawn", () => {
-		console.log("============= Bot spawned. Use /surv-X to connect.");
+		console.log(`[96m${time()}[0m Bot spawned. Use /surv-X to connect.`);
 	});
 	bot.on("respawn", () => {
-		console.log("============= Bot respawned (changed dimensions or died)");
+		console.log(`[96m${time()}[0m Bot respawned (changed dimensions or died)`);
 	});
 
 	bot.on("message", (message, messagePosition) => {
@@ -125,21 +124,31 @@ function createIns() {
 	bot.on("messagestr", (message) => {
 		if (message.includes("/reg ")) {
 			send(`/reg ${password}`);
-			console.log("============= Sent /register request");
+			console.log(`[96m${time()}[0m Sent /register request`);
 		}
 
 		else if (message.includes("/login ")) {
 			send(`/login ${password}`);
-			console.log("============= Sent /login request");
+			console.log(`[96m${time()}[0m Sent /login request`);
 		}
 
 		else if (message === "◊ Вы превысили лимит регистраций с вашего IP") {
-			console.log("============= Cannot register! Too many accounts from an IP.");
+			console.log(`[91m${time()}[0m Cannot register! Too many accounts from an IP.`);
 		}
 	});
 
 	// Log errors and kick reasons:
-	bot.on('kicked', console.log);
+	bot.on('kicked', (reason) => {
+		if (reason.indexOf("{") == -1) return
+
+		const text = JSON.parse(reason).text
+			// sanitize
+			.replaceAll("\n", "\\n")
+			.replaceAll("\r", "\\r")
+			.replaceAll("\b", "\\b")
+
+		console.log(`[91m${time()}[0m Bot got kicked: ${text}.`);
+	});
 	bot.on('error', console.log);
 
 	lbot = bot;
@@ -182,7 +191,7 @@ const handleFile = (path) => {
 	const imported = require(path);
 	imported.load(sctx);
 	addons[imported.name] = imported;
-	console.log(`Loaded addon "${imported.name}".`);
+	console.log(`[32m${time()}[0m Loaded addon "${imported.name}".`);
 };
 
 const requireAllFilesInDirectory = (directory) => {
@@ -199,7 +208,7 @@ const requireAllFilesInDirectory = (directory) => {
 };
 
 requireAllFilesInDirectory(path.join(__dirname, "addons"));
-console.log("Finished loading", Object.keys(addons).length, "addons!\n")
+console.log(`[92m${time()}[0m Finished loading ${Object.keys(addons).length} addons!\n`)
 // //
 
 
@@ -210,22 +219,22 @@ const rl = readline.createInterface({
 	output: process.stdout
 });
 
-console.log(`[2;96mCommands:
-[2;94m- @list
+console.log(`[96mCommands:
+[2;96m- @list
 
-[2;94m- @exit / @quit / @leave
-[2;94m- @restart
+[2;96m- @exit / @quit / @leave
+[2;96m- @restart
 
-[2;94m- @info
-[2;94m- @sethost
-[2;94m- @setname
+[2;96m- @info
+[2;96m- @sethost
+[2;96m- @setname
 
-[2;94m- @login[0m
+[2;96m- @login[0m
 `)
 
 var readlinecmds = {
 	"list": function() {
-		if (!lbot) return console.log("============= Bot is not connected");
+		if (!lbot) return console.log(`[91m${time()}[0m Bot is not connected`);
 		let players = Object.values(lbot.players); // Получение списка игроков
 		let playersArray = players.map(element => element.username); // Конвертирование в массив
 		
@@ -253,9 +262,9 @@ var readlinecmds = {
 	},
 
 	"info": function() {
-		console.log(`============= Server: [1;2m${host}[0m`);
-		console.log(`============= Username: [1;2m${botname}[0m`);
-		console.log(`============= Password: [1;2m<hidden: @showpass>[0m`);
+		console.log(`[96m${time()}[0m Server: [1;2m${host}[0m`);
+		console.log(`[96m${time()}[0m Username: [1;2m${botname}[0m`);
+		console.log(`[96m${time()}[0m Password: [1;2m<hidden: @showpass>[0m`);
 	},
 
 	"sethost": function(input) {
@@ -271,11 +280,11 @@ var readlinecmds = {
 		readlinecmds.info();
 	},
 	"showpass": function() {
-		console.log(`============= Password: [1;2m${password}[0m`);
+		console.log(`[96m${time()}[0m Password: [1;2m${password}[0m`);
 	},
 
 	"login": function() {
-		if (lbot) return console.log("============= Bot is already connected");
+		if (lbot) return console.log(`[91m${time()}[0m Bot is already connected`);
 		createIns();
 	},
 
@@ -303,10 +312,10 @@ rl.on("line", (input) => {
 		if (readlinecmds[command]) {
 			readlinecmds[command](inputs);
 		} else {
-			console.log("============= Command not found.");
+			console.log(`[91m${time()}[0m Command not found.`);
 		}
 	} else {
-		if (!lbot) return console.log("============= Bot is not connected");
+		if (!lbot) return console.log(`[91m${time()}[0m  Bot is not connected`);
 		send(input);
 	}
 });
