@@ -10,6 +10,7 @@ function salt(length) {
 // settings
 var host = "dexland.su";
 var botname = salt(15);
+var password = "d3ll_changeme";
 var lbot;
 
 // tasks
@@ -99,6 +100,7 @@ function createIns() {
 			time: false,
 			title: false,
 			villager: false,
+			entities: false // bypasses dexland security
 		},
 		host: host,
 		username: botname,
@@ -122,12 +124,12 @@ function createIns() {
 
 	bot.on("messagestr", (message) => {
 		if (message.includes("/reg ")) {
-			send(`/reg 7887ABa1235`);
+			send(`/reg ${password}`);
 			console.log("============= Sent /register request");
 		}
 
 		else if (message.includes("/login ")) {
-			send(`/login 7887ABa1235`);
+			send(`/login ${password}`);
 			console.log("============= Sent /login request");
 		}
 
@@ -253,6 +255,7 @@ var readlinecmds = {
 	"info": function() {
 		console.log(`============= Server: [1;2m${host}[0m`);
 		console.log(`============= Username: [1;2m${botname}[0m`);
+		console.log(`============= Password: [1;2m<hidden: @showpass>[0m`);
 	},
 
 	"sethost": function(input) {
@@ -262,6 +265,13 @@ var readlinecmds = {
 	"setname": function(input) {
 		botname = input[0];
 		readlinecmds.info();
+	},
+	"setpass": function(input) {
+		password = input[0];
+		readlinecmds.info();
+	},
+	"showpass": function() {
+		console.log(`============= Password: [1;2m${password}[0m`);
 	},
 
 	"login": function() {
