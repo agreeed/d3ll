@@ -8,14 +8,32 @@ function salt(length) {
 }
 
 // settings
+const fs = require("fs");
+const path = require("path");
+const envraw = fs.readFileSync('./.env', 'utf8');
+const envarr = envraw.replaceAll("\r").split("\n");
+var env = {};
+for (i of envarr) {
+	const components = i.split("=");
+	env[components[0]] = components[1];
+}
+
 var host = "dexland.su";
 var botname = salt(15);
-var password = "d3ll_changeme";
+if (env.username) {
+	botname = env.username;
+} else {
+	console.log("Random username chosen! (.env file not present/username key not found)")
+}
+var password = env.password ?? "d3ll_changeme";
+if (password === "d3ll_changeme") console.log("Default password detected! (.env file not present/username key not found/it's using the default password)");
 var lbot;
 
 // tasks
-var delay = 5000;
-var cancel = false;
+const listeners = {
+	"start": [],
+	"exit": [],
+}
 
 
 // Функция для задержек в асинхронных функциях
@@ -26,6 +44,21 @@ function getRandomInt(min, max) {
 	min = Math.ceil(min);
 	max = Math.floor(max);
 	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function onMessage(message, messagePosition) {
+	if (messagePosition == "chat")
+		console.log(`[2;36m${time()}${message.toAnsi()}`);
+}
+
+function fireListener(listener, ...args) {
+	for (lis of listeners[listener]) {
+		try {
+			lis(...args);
+		} catch (e) {
+			console.error(e);
+		}
+	}
 }
 
 async function send(command) {
@@ -41,11 +74,21 @@ async function send(command) {
 	lbot.chat(command);
 }
 
-function exit() {
+async function safesend(command) {
+	if (command.length > 255) return; // Проверка на слишком длинное сообщение
+	await timerp(cooldown * 350); // Ждём 350мс с учётом прошлых сообщений, чтобы избежать игнора за спам
+	lbot.chat(command) // Прописываем
+	cooldown++ // Добавляем 350мс в буфер
+	await timerp(350);
+	cooldown-- // Убираем её после этого
+}
+
+function exit(reason) {
 	if (!lbot) return console.log("[91m Bot is not connected");
+	fireListener("exit", lbot, reason ?? "user");
 	lbot.quit();
 	lbot = undefined;
-	console.log(`[96m${time()}[0m Left (user input)`);
+	console.log(`[96m${time()}[0m Left (${reason ?? "user input"})`);
 }
 
 // Время для логирования
@@ -59,6 +102,9 @@ function time() {
 const mineflayer = require('mineflayer');
 
 function createIns() {
+	if (password === "d3ll_changeme")
+		return console.log(`[91m${time()}[0m Bot cannot connect! Change the password before proceeding.`);
+
 	const bot = mineflayer.createBot({
 		plugins: {
 			bossbar: false,
@@ -117,9 +163,7 @@ function createIns() {
 		console.log(`[96m${time()}[0m Bot respawned (changed dimensions or died)`);
 	});
 
-	bot.on("message", (message, messagePosition) => {
-		if (messagePosition == "chat") console.log(`[2;36m${time()}${message.toAnsi()}`);
-	});
+	bot.on("message", onMessage);
 
 	bot.on("messagestr", (message) => {
 		if (message.includes("/reg ")) {
@@ -148,10 +192,15 @@ function createIns() {
 			.replaceAll("\b", "\\b")
 
 		console.log(`[91m${time()}[0m Bot got kicked: ${text}.`);
+		exit("kicked");
 	});
-	bot.on('error', console.log);
+	bot.on('error', (...g) => {
+		console.log(...g);
+		exit("error");
+	});
 
 	lbot = bot;
+	fireListener("start", lbot);
 }
 
 
@@ -162,6 +211,7 @@ const sctx = {
 	},
 
 	chat: send,
+	safechat: safesend,
 
 	setUser: (user) => {
 		if (typeof user != "string") return;
@@ -181,10 +231,26 @@ const sctx = {
 	getHost: () => {
 		return host;
 	},
+
+	listen: (listener, callback) => {
+		if (typeof listener != "string")
+			throw new Error('Listener is not a string.');
+		if (typeof callback != "function")
+			throw new Error('Callback is not a function.');
+
+		if (!listeners[listener])
+			throw new Error('Invalid listener provided.');
+
+		listeners[listener].push(callback);
+	},
+	removeListener: (listener, callback) => {
+		for (i in listeners[listener]) {
+			if (listeners[listener][i] === callback)
+				listeners[listener].splice(i, 1); // whjat the second argument do
+		}
+	}
 }
 
-const fs = require("fs");
-const path = require("path");
 const addons = {};
 
 const handleFile = (path) => {
